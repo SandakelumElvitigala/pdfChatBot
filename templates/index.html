@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Question Answering Agent</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .upload-form, .query-form {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="file"], input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        textarea {
+            height: 100px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .current-file {
+            font-style: italic;
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Question Answering Agent</h1>
+    
+    <div class="upload-form">
+        <h2>Upload PDF Document</h2>
+        <form action="/upload/" enctype="multipart/form-data" method="post">
+            <div class="form-group">
+                <label for="pdf_file">Select PDF file:</label>
+                <input type="file" name="pdf_file" id="pdf_file" accept=".pdf" required>
+            </div>
+            <button type="submit">Upload PDF</button>
+        </form>
+    </div>
+    
+    <div id="current-pdf" class="current-file"></div>
+    
+    <div class="query-form">
+        <h2>Ask a Question</h2>
+        <form action="/ask/" method="post">
+            <div class="form-group">
+                <label for="question">Your question about the PDF:</label>
+                <textarea name="question" id="question" required></textarea>
+            </div>
+            <button type="submit">Get Answer</button>
+        </form>
+    </div>
+    
+    <div id="answer-result" class="result" style="display: none;">
+        <h3>Answer:</h3>
+        <div id="answer-content"></div>
+    </div>
+    
+    <script>
+        // Check if a PDF is currently loaded when the page is loaded
+        window.onload = async function() {
+            try {
+                const response = await fetch('/current-pdf/');
+                const data = await response.json();
+                if (data.pdf_name) {
+                    document.getElementById('current-pdf').textContent = 'Current PDF: ' + data.pdf_name;
+                }
+            } catch (error) {
+                console.error('Error checking current PDF:', error);
+            }
+        };
+        
+        // Handle form submissions with fetch API
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const url = this.action;
+                const method = this.method;
+                
+                try {
+                    let response;
+                    if (url.includes('/upload/')) {
+                        response = await fetch(url, {
+                            method: method,
+                            body: formData
+                        });
+                        const data = await response.json();
+                        if (response.ok) {
+                            document.getElementById('current-pdf').textContent = 'Current PDF: ' + data.filename;
+                            alert('PDF uploaded successfully!');
+                        } else {
+                            alert('Error: ' + data.detail);
+                        }
+                    } else if (url.includes('/ask/')) {
+                        document.getElementById('answer-content').textContent = 'Processing your question...';
+                        document.getElementById('answer-result').style.display = 'block';
+                        
+                        response = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: new URLSearchParams(formData)
+                        });
+                        const data = await response.json();
+                        if (response.ok) {
+                            document.getElementById('answer-content').textContent = data.answer;
+                        } else {
+                            document.getElementById('answer-content').textContent = 'Error: ' + data.detail;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
