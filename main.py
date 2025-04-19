@@ -9,9 +9,18 @@ import PyPDF2
 import httpx
 import uvicorn
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize FastAPI app
 app = FastAPI(title="PDF Question Answering Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create directories for storing uploaded files
 os.makedirs("uploads", exist_ok=True)
